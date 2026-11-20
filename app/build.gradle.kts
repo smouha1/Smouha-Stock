@@ -3,6 +3,11 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
+// GitHub Actions passes unset secrets as EMPTY strings (not null), so `?:` alone
+// would pick "" and break signing. Treat blank values as missing.
+fun envOrDefault(name: String, default: String): String =
+    System.getenv(name)?.takeIf { it.isNotBlank() } ?: default
+
 android {
     namespace = "com.smouha.stock"
     compileSdk = 34
@@ -17,12 +22,10 @@ android {
 
     signingConfigs {
         create("release") {
-            val storePath = System.getenv("SMOUHA_KEYSTORE_FILE")
-                ?: "/tmp/smouha-keys/smouha-release.jks"
-            storeFile = file(storePath)
-            storePassword = System.getenv("SMOUHA_KEYSTORE_PASS") ?: "SmouhaOps2026#Key"
-            keyAlias = System.getenv("SMOUHA_KEY_ALIAS") ?: "smouha_release_key"
-            keyPassword = System.getenv("SMOUHA_KEY_PASS") ?: "SmouhaOps2026#Key"
+            storeFile = file(envOrDefault("SMOUHA_KEYSTORE_FILE", "/tmp/smouha-keys/smouha-release.jks"))
+            storePassword = envOrDefault("SMOUHA_KEYSTORE_PASS", "SmouhaOps2026#Key")
+            keyAlias = envOrDefault("SMOUHA_KEY_ALIAS", "smouha_release_key")
+            keyPassword = envOrDefault("SMOUHA_KEY_PASS", "SmouhaOps2026#Key")
             enableV1Signing = true
             enableV2Signing = true
             enableV3Signing = true
